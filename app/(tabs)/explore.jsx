@@ -17,8 +17,14 @@ export default function TabTwoScreen() {
           const userDoc = doc(db, 'usuarios', userId);
           const userSnapshot = await getDoc(userDoc);
           if (userSnapshot.exists()) {
-            setUser(userSnapshot.data());
+            const userData = userSnapshot.data();
+            setUser(userData);
+            //console.log('Dados do usuário:', userData);
+          } else {
+            console.log('Usuário não encontrado');
           }
+        } else {
+          console.log('Token do usuário não encontrado');
         }
       } catch (error) {
         console.error('Erro ao buscar usuário:', error);
@@ -34,9 +40,7 @@ export default function TabTwoScreen() {
         <Appbar.Content title="Perfil" />
         <Appbar.Action 
           icon="dots-vertical"
-          onPress={() => {
-            router.push("settings");
-          }}
+          onPress={() => router.push("settings")}
         />
       </Appbar.Header>
       
@@ -45,7 +49,7 @@ export default function TabTwoScreen() {
           <View style={styles.avatarContainer}>
             {user.foto ? (
               <Image
-                source={{ uri: user.foto }}
+                source={{ uri: `data:image/jpeg;base64,${user.foto}` }}
                 style={styles.avatar}
               />
             ) : (
