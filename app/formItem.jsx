@@ -4,7 +4,7 @@ import { Button } from 'react-native-paper';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Input from '@/components/Input';
-import { db } from '../../firebaseConfig'; 
+import { db } from '../firebaseConfig'; 
 import { collection, addDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
