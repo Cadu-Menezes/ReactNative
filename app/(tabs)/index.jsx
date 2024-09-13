@@ -1,18 +1,35 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Appbar } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Appbar, Button, DataTable } from 'react-native-paper';
 import { router } from 'expo-router';
-import Grid from '@/components/Grid';
-import { Button } from 'react-native-paper';
-import { isLoggedIn } from '@/services/auth';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/firebaseConfig'; 
 
 
 export default function HomeScreen() {
+  const [tarefas, setTarefas] = useState([]);
 
   const criar = () => {
-    isLoggedIn.value = true;
-    router.navigate('criarItem');
+    router.navigate('/formItem');
   };
+
+  useEffect(() => {
+    const buscaTarefas = async () => {
+      try {
+        const tarefasCollection = collection(db, 'tarefas');
+        const tarefasSnapshot = await getDocs(tarefasCollection);
+        const tarefasList = tarefasSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setTarefas(tarefasList);
+      } catch (error) {
+        console.error('Erro ao buscar tarefas:', error);
+      }
+    };
+
+    buscaTarefas();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -26,17 +43,25 @@ export default function HomeScreen() {
         />
       </Appbar.Header>
 
-      <Grid columns={3} gap={15}>
-        <View style={styles.gridItem}><Text>Produtos</Text></View>
-        <View style={styles.gridItem}><Text>Fornecedores</Text></View>
-        <View style={styles.gridItem}><Text>Usuarios</Text></View>
-        <View style={styles.gridItem}><Text>Cotação</Text></View>
-        <View style={styles.gridItem}><Text>Requisição</Text></View>
-        <View style={styles.gridItem}><Text>Contatos</Text></View>
-      </Grid>
+      <DataTable style={styles.table}>
+        <DataTable.Header>
+          <DataTable.Title>Id</DataTable.Title>
+          <DataTable.Title>Item</DataTable.Title>
+          <DataTable.Title>Descrição</DataTable.Title>
+        </DataTable.Header>
 
-      <Button mode="contained" style={styles.input} onPress={criar}>Novo</Button>
+        {tarefas.map((tarefa) => (
+          <DataTable.Row key={tarefa.id}>
+            <DataTable.Cell>{tarefa.id}</DataTable.Cell>
+            <DataTable.Cell>{tarefa.item}</DataTable.Cell>
+            <DataTable.Cell>{tarefa.descricao}</DataTable.Cell>
+          </DataTable.Row>
+        ))}
+      </DataTable>
 
+      <Button mode="contained" style={styles.input} onPress={criar}>
+        Novo
+      </Button>
     </View>
   );
 }
@@ -51,6 +76,9 @@ const styles = StyleSheet.create({
   },
   input: {
     marginTop: 15,
-    width: '100%', 
+    width: '100%',
+  },
+  table: {
+    marginTop: 15,
   },
 });

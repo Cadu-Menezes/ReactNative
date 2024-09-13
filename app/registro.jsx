@@ -11,11 +11,11 @@ export default function Registro() {
 
   const registrarUsuario = async () => {
     try {
-      // Adicionar o usuário na coleção 'usuarios' no Firestore, gerando automaticamente um ID
+      // Adicionar o usuário na coleção 'usuarios' no Firestore
       await addDoc(collection(db, 'usuarios'), {
         email: email,
-        senha: senha, // Aqui você está armazenando a senha diretamente no Firestore
-        foto: '', // Campo da foto vazio
+        senha: senha, 
+        foto: '', 
       });
 
       Alert.alert('Sucesso!', 'Usuário registrado com sucesso!');

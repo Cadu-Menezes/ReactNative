@@ -1,38 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Appbar, Avatar, Text } from 'react-native-paper';
-import { Link, router } from 'expo-router';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../../firebaseConfig'; 
 import { doc, getDoc } from 'firebase/firestore';
+import Button  from '../../components/Button';
+import { useRouter } from 'expo-router';
 
 export default function TabTwoScreen() {
+  
   const [user, setUser] = useState(null);
+  const navigation = useNavigation(); 
+  const router = useRouter();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userId = await AsyncStorage.getItem('userToken');
-        if (userId) {
-          const userDoc = doc(db, 'usuarios', userId);
-          const userSnapshot = await getDoc(userDoc);
-          if (userSnapshot.exists()) {
-            const userData = userSnapshot.data();
-            setUser(userData);
-            //console.log('Dados do usuário:', userData);
-          } else {
-            console.log('Usuário não encontrado');
-          }
+  const fetchUserData = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userToken');
+      if (userId) {
+        const userDoc = doc(db, 'usuarios', userId);
+        const userSnapshot = await getDoc(userDoc);
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.data();
+          setUser(userData);
         } else {
-          console.log('Token do usuário não encontrado');
+          console.log('Usuário não encontrado');
         }
-      } catch (error) {
-        console.error('Erro ao buscar usuário:', error);
+      } else {
+        console.log('Token do usuário não encontrado');
       }
-    };
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+    }
+  };
 
-    fetchUser();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserData();
+    }, [])
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -40,7 +46,7 @@ export default function TabTwoScreen() {
         <Appbar.Content title="Perfil" />
         <Appbar.Action 
           icon="dots-vertical"
-          onPress={() => router.push("settings")}
+          onPress={() => navigation.navigate("Settings")}
         />
       </Appbar.Header>
       
@@ -64,7 +70,11 @@ export default function TabTwoScreen() {
         ) : (
           <Text>Carregando...</Text>
         )}
-        <Link href="/teste" style={styles.link}>Clique aqui para editar o seu perfil</Link>
+
+        <Button mode="contained" style={styles.input} onPress={() => router.push('/teste')}>
+          Atualizar Foto de Perfil
+        </Button>
+
       </View>
     </View>
   );
@@ -90,9 +100,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  link: {
-    color: 'blue',
-    marginLeft: 5,
   },
 });
