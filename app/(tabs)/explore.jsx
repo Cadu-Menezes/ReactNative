@@ -54,7 +54,7 @@ export default function TabTwoScreen() {
           <View style={styles.avatarContainer}>
             {user.foto ? (
               <Image
-                source={{ uri: user.foto }} // Use a URL diretamente
+                source={{ uri: user.foto }} 
                 style={styles.avatar}
               />
             ) : (
