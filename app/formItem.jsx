@@ -65,25 +65,6 @@ export default function FormItem() {
     }
   };
 
-  const tirarFotos = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar a câmera.');
-      return;
-    }
-
-    let result = await ImagePicker.launchCameraAsync({
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets) {
-      const uris = result.assets.map(asset => asset.uri);
-      adicionarImagens(uris);
-    } else {
-      Alert.alert('Erro', 'Não foi possível tirar as fotos.');
-    }
-  };
-
   const removerFoto = (item) => {
 
     console.log('Item:', item);
@@ -238,11 +219,8 @@ export default function FormItem() {
       />
       <Text style={styles.titulo}>Galeria</Text>
       <View style={styles.buttonContainer}>
-        <Button mode="contained" onPress={tirarFotos}>
-          Tirar Fotos
-        </Button>
         <Button mode="contained" onPress={escolherImagens}>
-          Escolher da Galeria
+          Adicionar Imagens
         </Button>
       </View>
       
