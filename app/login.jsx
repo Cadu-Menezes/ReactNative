@@ -7,7 +7,7 @@ import Input from '@/components/Input';
 import { db } from '../firebaseConfig'; 
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 export default function Login() {
   const [email, setEmail] = useState('');
