@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { Appbar, Avatar, Text } from 'react-native-paper';
+import { View, StyleSheet, Image, Text } from 'react-native';
+import { Appbar, Avatar } from 'react-native-paper';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../../firebaseConfig'; 
 import { doc, getDoc } from 'firebase/firestore';
-import Button  from '../../components/Button';
+import Button from '../../components/Button';
 import { useRouter } from 'expo-router';
 
 export default function TabTwoScreen() {
-  
   const [user, setUser] = useState(null);
   const navigation = useNavigation(); 
   const router = useRouter();
 
-  const fetchUserData = async () => {
+  const buscarDadosUsuario = async () => {
     try {
       const userId = await AsyncStorage.getItem('userToken');
       if (userId) {
@@ -36,7 +35,7 @@ export default function TabTwoScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchUserData();
+      buscarDadosUsuario();
     }, [])
   );
 
@@ -55,7 +54,7 @@ export default function TabTwoScreen() {
           <View style={styles.avatarContainer}>
             {user.foto ? (
               <Image
-                source={{ uri: `data:image/jpeg;base64,${user.foto}` }}
+                source={{ uri: user.foto }} // Use a URL diretamente
                 style={styles.avatar}
               />
             ) : (
@@ -74,7 +73,6 @@ export default function TabTwoScreen() {
         <Button mode="contained" style={styles.input} onPress={() => router.push('/teste')}>
           Atualizar Foto de Perfil
         </Button>
-
       </View>
     </View>
   );
