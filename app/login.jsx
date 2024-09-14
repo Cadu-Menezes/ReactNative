@@ -16,7 +16,7 @@ export default function Login() {
 
   const login = async () => {
     try {
-      // Buscar o usuário no Firestore com base no email e senha
+      // Buscar o usuário no Firestore 
       const q = query(
         collection(db, 'usuarios'),
         where('email', '==', email),
@@ -26,14 +26,13 @@ export default function Login() {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        // Usuário encontrado, simula o login
-        const userId = querySnapshot.docs[0].id; // Pega o ID do usuário
-        await AsyncStorage.setItem('userToken', userId); // Salva o ID do usuário no AsyncStorage
+        // Usuário encontrado
+        const userId = querySnapshot.docs[0].id; 
+        await AsyncStorage.setItem('userToken', userId); 
 
         Alert.alert('Sucesso!', 'Login realizado com sucesso!');
-        router.push('(tabs)'); // Navega para as abas principais
+        router.push('(tabs)');
       } else {
-        // Usuário não encontrado
         Alert.alert('Erro', 'Email ou senha inválidos.');
       }
     } catch (erro) {
