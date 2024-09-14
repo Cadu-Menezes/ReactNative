@@ -1,25 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Alert, View, FlatList, Image, TouchableOpacity, Text } from 'react-native';
 import { Button } from 'react-native-paper';
 import Input from '@/components/Input';
 import { db, storage } from '../firebaseConfig'; 
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as Camera from 'expo-camera';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function FormItem() {
   const [item, setItem] = useState('');
   const [descricao, setDescricao] = useState('');
   const [imagensTemp, setImagensTemp] = useState([]);
-  const navigation = useNavigation();
+  const [imagensRecuperadas, setImagensRecuperadas] = useState([]);
+  const { id } = useLocalSearchParams(); 
+  const router = useRouter();
+
+  useEffect(() => {
+    if (id) {
+      const fetchData = async () => {
+        try {
+          const tarefaDocRef = doc(db, 'tarefas', id);
+          const docSnap = await getDoc(tarefaDocRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setItem(data.item || '');
+            setDescricao(data.descricao || '');
+            setImagensRecuperadas(data.fotos || []);
+          } else {
+            Alert.alert('Erro', 'Tarefa não encontrada.');
+          }
+        } catch (error) {
+          Alert.alert('Erro', 'Não foi possível recuperar os dados.');
+          console.error('Erro ao recuperar dados:', error);
+        }
+      };
+
+      fetchData();
+    }
+  }, [id]);
 
   const adicionarImagens = (uris) => {
     const novasImagens = uris.map(uri => ({
       uri,
-      id: Date.now() + Math.random(), // Gerar um ID único para cada imagem
+      id: Date.now() + Math.random(), 
     }));
     setImagensTemp(prevImagens => [...prevImagens, ...novasImagens]);
   };
@@ -58,33 +84,55 @@ export default function FormItem() {
     }
   };
 
-  const removerFoto = (id) => {
-    setImagensTemp(prevImagens => prevImagens.filter(imagem => imagem.id !== id));
+  const removerFoto = (item) => {
+
+    console.log('Item:', item);
+    console.log("Id: ",item.id)
+
+    const imagemTempParaRemover = imagensTemp.find(imagem => imagem.id === item.id);
+    const imagemParaRemover = imagensRecuperadas.find(imagem => imagem.uri === item.uri);
+    
+    console.log('imagemParaRemover:', imagemParaRemover);
+
+    if (imagemTempParaRemover) {
+      // Remove a imagem temporária
+      setImagensTemp(prevImagens => {
+        const novasImagens = prevImagens.filter(imagem => imagem.id !== item.id);
+        console.log('Imagens temporárias após remoção:', novasImagens);
+        return novasImagens;
+      });
+    } else {
+      // Remove a imagem recuperada
+      setImagensRecuperadas(prevImagens => {
+        const novasImagens = prevImagens.filter(imagem => imagem !== item.uri);
+        console.log('Imagens recuperadas após remoção:', novasImagens);
+        return novasImagens;
+      });
+    }
   };
 
   const uploadImagens = async (tarefaId) => {
     try {
-
       console.log('Iniciando upload das imagens...', tarefaId);
 
       const imagensProcessadas = await Promise.all(
         imagensTemp.map(async (imagem) => {
-          console.log('********************Imagem***********************')
+          console.log('********************Imagem***********************');
           
-          console.log("Imagem: ",imagem)
+          console.log("Imagem: ", imagem);
 
           const { uri, id } = imagem;
-          console.log("URI: ", uri)
-          console.log("ID: ", id)
+          console.log("URI: ", uri);
+          console.log("ID: ", id);
           
           const imageName = `${id}.jpg`;
-          console.log("Nome da imagem: ", imageName)
+          console.log("Nome da imagem: ", imageName);
 
           const imageRef = ref(storage, `tarefa_fotos/${tarefaId}/${imageName}`);
-          console.log("Referência da imagem: ", imageRef)
+          console.log("Referência da imagem: ", imageRef);
 
           const response = await fetch(uri);
-          console.log("Resposta da imagem: ", response)
+          console.log("Resposta da imagem: ", response);
                     
           if (!response.ok) {
             console.log('Erro ao obter a imagem. Status: ' + response.status);
@@ -92,12 +140,12 @@ export default function FormItem() {
           }
 
           const blob = await response.blob();
-          console.log("Blob da imagem: ", blob)
+          console.log("Blob da imagem: ", blob);
           
           await uploadBytes(imageRef, blob);
 
           const downloadURL = await getDownloadURL(imageRef);
-          console.log("URL da imagem: ", downloadURL)
+          console.log("URL da imagem: ", downloadURL);
 
           return downloadURL;
         })
@@ -113,30 +161,44 @@ export default function FormItem() {
 
   const cadastro = async () => {
     try {
-      // Passo 1: Cadastrar a tarefa e obter o ID
-      const tarefaDocRef = await addDoc(collection(db, 'tarefas'), {
-        item,
-        descricao,
-        fotos: [] // Inicialmente, a lista de fotos está vazia
-      });
+      if (id) {
+        // Atualizar a tarefa existente
+        const tarefaDocRef = doc(db, 'tarefas', id);
+        const urls = await uploadImagens(id);
 
-      const tarefaId = tarefaDocRef.id; // Obter o ID gerado pelo Firestore
-      console.log('ID da tarefa:', tarefaId);
+        await updateDoc(tarefaDocRef, {
+          item,
+          descricao,
+          fotos: [...imagensRecuperadas, ...urls],
+        });
 
-      // Passo 2: Fazer o upload das imagens usando o ID da tarefa
-      const urls = await uploadImagens(tarefaId);
+        Alert.alert('Sucesso!', 'Tarefa atualizada com sucesso!');
+      } else {
+        // Criar uma nova tarefa
+        const tarefaDocRef = await addDoc(collection(db, 'tarefas'), {
+          item,
+          descricao,
+          fotos: [] 
+        });
 
-      // Atualizar o documento da tarefa com as URLs das imagens
-      await addDoc(collection(db, 'tarefas'), {
-        item,
-        descricao,
-        fotos: urls
-      });
+        const tarefaId = tarefaDocRef.id; // recupero o ID gerado pelo Firestore
+        console.log('ID da tarefa:', tarefaId);
 
-      Alert.alert('Sucesso!', 'Tarefa registrada com sucesso!');
+        // Agora eu vou fazer o upload das imagens usando o ID da tarefa
+        const urls = await uploadImagens(tarefaId);
+
+        // Agora vou atualizar o doc da tarefa com as URLs das imagens
+        await updateDoc(tarefaDocRef, {
+          item,
+          descricao,
+          fotos: urls
+        });
+
+        Alert.alert('Sucesso!', 'Tarefa registrada com sucesso!');
+      }
+
       setImagensTemp([]);
-      navigation.navigate("/")
-      
+      router.push('(tabs)');
     } catch (erro) {
       Alert.alert('Erro', 'Não foi possível registrar a tarefa.');
       console.error('Erro ao registrar tarefa: ', erro);
@@ -146,15 +208,22 @@ export default function FormItem() {
   const renderItem = ({ item }) => (
     <View style={styles.imageContainer}>
       <Image source={{ uri: item.uri }} style={styles.image} />
-      <TouchableOpacity onPress={() => removerFoto(item.id)} style={styles.removeButton}>
-        <Button mode="text" style={styles.removeButtonText}>X</Button>
+      <TouchableOpacity onPress={() => removerFoto(item)} style={styles.removerBotao}>
+        <Text style={styles.removerBotaoText}>X</Text>
       </TouchableOpacity>
     </View>
   );
 
+  const combinedImages = [...imagensRecuperadas.map(uri => ({ uri })), ...imagensTemp];
+
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Cadastro</Text>
+      {id ? (
+        <Text style={styles.titulo}>Editar</Text>
+      ) : (
+        <Text style={styles.titulo}>Cadastro</Text>
+      )}
+      
       <Input
         placeholder="Item"
         style={styles.input}
@@ -176,19 +245,21 @@ export default function FormItem() {
           Escolher da Galeria
         </Button>
       </View>
+      
       <FlatList
-        data={imagensTemp}
+        data={combinedImages}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item.uri + index}
         numColumns={3}
         contentContainerStyle={styles.gallery}
       />
+
       <Button mode="contained" style={styles.input} onPress={cadastro}>
-        Cadastro
+        {id ? 'Atualizar' : 'Cadastrar'}
       </Button>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -220,15 +291,17 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 10,
   },
-  removeButton: {
+  removerBotao: {
     position: 'absolute',
     top: 5,
     right: 5,
     backgroundColor: 'red',
     borderRadius: 50,
+    padding: 5,
   },
-  removeButtonText: {
+  removerBotaoText: {
     color: 'white',
+    fontWeight: 'bold',
   },
   titulo: {
     fontSize: 20,
